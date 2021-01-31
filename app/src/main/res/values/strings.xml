@@ -1,0 +1,53 @@
+<resources>
+    <string name="app_name">自动答题</string>
+    <string name="app_brief">您身边的环境助手</string>
+
+    <string name="brief">environment life</string>
+
+    <string name="ok">ok</string>
+
+    <string name="correct">确定</string>
+    <string name="cancle">取消</string>
+    <string name="exit">退出</string>
+
+    <string name="gender_male">男</string>
+    <string name="gender_female">女</string>
+
+    <!--Homepage errorData dialog-->
+
+    <string name="homepage_dialog_button_setting">设置wifi</string>
+
+    <string name="list_null_data">呃～这里是空的～</string>
+
+    <!--Search Fragment-->
+    <string name="current_city">当前城市</string>
+    <string name="small_button_camera">拍照查询</string>
+    <string name="small_button_mac">语音查询</string>
+    <string name="unit_comment">条回复</string>
+    <string name="no_comment">此条无评论</string>
+    <string name="like">赞</string>
+    <string name="alreadyLike">已赞</string>
+    <string name="age">岁</string>
+
+    <!--Homepage errorData dialog - No wifi-->
+    <string name="net_unavailable">网络错误</string>
+
+    <string name="homepage_dialog_title_no_wife">没有WIFI网络</string>
+    <string name="homepage_dialog_msg_no_wife">请检查wifi设置</string>
+
+    <!--Homepage errorData dialog - unexpected-->
+    <string name="homepage_dialog_title_unexpected">未知错误</string>
+
+
+    <string name="release_exit_dialog_title">即将退出</string>
+    <string name="release_exit_dialog_msg">需要将当前已编辑的内容存入草稿箱吗？</string>
+    <string name="release_exit_dialog_save">存入并退出</string>
+
+
+    <!--权限被永久拒绝的弹窗-->
+    <string name="permission_unavailable">权限被关闭</string>
+    <string name="permission_need_open_message">权限被永久拒绝，点击去授权到设置界面手动打开权限</string>
+    <string name="permission_set">去授权</string>
+
+
+</resources>
