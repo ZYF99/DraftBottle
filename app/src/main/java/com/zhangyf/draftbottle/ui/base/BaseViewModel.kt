@@ -7,6 +7,7 @@ import com.zhangyf.draftbottle.manager.catchApiError
 import com.zhangyf.draftbottle.utils.BindLife
 import com.zhangyf.draftbottle.utils.switchThread
 import io.reactivex.Single
+import io.reactivex.SingleSource
 import io.reactivex.disposables.CompositeDisposable
 import org.kodein.di.Kodein
 import org.kodein.di.KodeinAware
@@ -32,7 +33,9 @@ abstract class BaseViewModel(application: Application) :
 	
 	protected fun <T> Single<T>.doOnApiSuccess(action: (T) -> Unit) =
 		switchThread()
-			.catchApiError()
+			.onErrorResumeNext {
+				SingleSource {  }
+			}
 			.doOnSuccess { action.invoke(it) }
 			.bindLife()
 	

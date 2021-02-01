@@ -6,9 +6,9 @@ data class QuestionAnswerResultModel(
 )
 
 data class QuestionAnswerModel(
-    val id:String,
-    val title:String,
-    val options: List<OptionModel>
+    val id:String?=null,
+    val title:String?=null,
+    val options: List<OptionModel>?=null
 )
 
 data class OptionModel(

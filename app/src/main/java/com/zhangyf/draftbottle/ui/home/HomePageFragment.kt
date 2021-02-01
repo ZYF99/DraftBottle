@@ -1,6 +1,7 @@
 package com.zhangyf.draftbottle.ui.home
 
 import android.util.Log
+import androidx.appcompat.app.AlertDialog
 import com.zhangyf.draftbottle.R
 import com.zhangyf.draftbottle.databinding.HomePageBinding
 import com.zhangyf.draftbottle.ui.base.BindingFragment
@@ -33,6 +34,20 @@ class HomePageFragment : BindingFragment<HomePageBinding, HomePageViewModel>(
             binding.tvCoin.text = "积分：$it"
         }
 
+        viewModel.versionMutableLiveData.observeNonNull {
+            if (it == "2.0") {
+                viewModel.getLoginSessionAndQRCode()
+            } else {
+                context?.let { it1 ->
+                    AlertDialog.Builder(it1)
+                        .setMessage("版本不匹配")
+                        .setNegativeButton("取消", null)
+                        .create()
+                        .show()
+                }
+            }
+        }
+
         /*binding.btnFinish.setOnClickListener {
             compositeDisposable.clear()
             viewModel.finishAnswer()
@@ -54,12 +69,8 @@ class HomePageFragment : BindingFragment<HomePageBinding, HomePageViewModel>(
 
     override fun initData() {
         viewModel.getCount()
-        viewModel.getLoginSessionAndQRCode()
-        /*try {
-            client.connectBlocking()
-        } catch (e: InterruptedException) {
-            e.printStackTrace()
-        }*/
+        viewModel.getVersionAndGo()
+
     }
 
     /**
