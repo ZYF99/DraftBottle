@@ -1,6 +1,7 @@
-package com.zhangyf.draftbottle.baseimport org.junit.Test
+package com.zhangyf.draftbottle
 
 import org.junit.Assert.*
+import org.junit.Test
 
 /**
  * Example local unit test, which will execute on the development machine (host).

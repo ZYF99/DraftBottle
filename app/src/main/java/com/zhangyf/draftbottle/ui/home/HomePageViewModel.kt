@@ -2,30 +2,31 @@ package com.zhangyf.draftbottle.ui.home
 
 import android.app.Application
 import android.util.Log
-import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
+import com.google.gson.JsonObject
 import com.zhangyf.draftbottle.MyApplication
+import com.zhangyf.draftbottle.manager.api.AAsService
 import com.zhangyf.draftbottle.manager.api.OauthService
 import com.zhangyf.draftbottle.manager.api.SSxxService
 import com.zhangyf.draftbottle.manager.base.token
 import com.zhangyf.draftbottle.model.api.ssss.FinishAnswerRequestModel
 import com.zhangyf.draftbottle.model.api.ssss.QuestionAnswerModel
 import com.zhangyf.draftbottle.model.api.ssss.SubmitAnswerRequestModel
+import com.zhangyf.draftbottle.model.api.ssss.SubmitAnswerResultModel
 import com.zhangyf.draftbottle.ui.base.BaseViewModel
 import com.zhangyf.draftbottle.utils.switchThread
 import io.reactivex.Observable
-import io.reactivex.ObservableSource
 import io.reactivex.Single
-import io.reactivex.SingleSource
-import okhttp3.MediaType
-import okhttp3.ResponseBody
+import org.json.JSONObject
 import org.jsoup.Jsoup
 import org.kodein.di.generic.instance
+import java.net.URLEncoder
 import java.util.HashMap
 import java.util.concurrent.TimeUnit
 
 class HomePageViewModel(application: Application) : BaseViewModel(application) {
     private val ssxxService by instance<SSxxService>()
+    private val aasService by instance<AAsService>()
     private val oAuthService by instance<OauthService>()
 
     val imageUrlMutableLiveData = MutableLiveData<String>()
@@ -36,7 +37,18 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
 
 
     val raceIdMutableLiveData = MutableLiveData<String>()
-    val questionOptionPairListMutableLiveData = MutableLiveData<List<Pair<Pair<String, String>, List<Pair<String,String>>>>>()
+    val questionOptionPairListMutableLiveData = MutableLiveData<List<Pair<Pair<String, String>, List<Pair<String, String>>>>>()
+
+    val countMutableLiveData = MutableLiveData<String>()
+
+    fun getCount() {
+        Single.create<String> { emitter ->
+            emitter.onSuccess(DBUtils.getCount())
+        }.switchThread()
+            .doOnSuccess {
+                countMutableLiveData.postValue(it)
+            }.bindLife()
+    }
 
     fun getLoginSessionAndQRCode() {
         randomStringMutableLiveData.value = getRandomString(20)
@@ -54,7 +66,13 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
 
     var checkObservable: Observable<*>? = null
 
-    fun checkIfLogin() {
+    val nameMutableLiveData = MutableLiveData<String>()
+    val phoneMutableLiveData = MutableLiveData<String>()
+    val schoolMutableLiveData = MutableLiveData<String>()
+
+    val coinsMutableLiveData = MutableLiveData<String>()
+
+    private fun checkIfLogin() {
         checkObservable = Observable.interval(1, 2, TimeUnit.SECONDS)
             .flatMapSingle {
                 oAuthService.checkIfLogin(randomStringMutableLiveData.value ?: "")
@@ -64,6 +82,8 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
                     compositeDisposable.clear()
                     photoUrlMutableLiveData.value = it.data.data.photo
                     uidMutableLiveData.value = it.data.data._id
+                    phoneMutableLiveData.postValue(it.data.data.phone)
+                    imageUrlMutableLiveData.postValue(it.data.data.photo)
                     getUserTokenAndQuestionAndAnswer()
                 }
             }.doOnError {
@@ -83,6 +103,14 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
             uid = uidMutableLiveData.value
         ).flatMap {
             token = it.token
+
+            //获取用户信息
+            ssxxService.getUserInfo()
+        }.flatMap {
+
+            nameMutableLiveData.postValue(it.data?.name)
+            schoolMutableLiveData.postValue(it.data?.university_name)
+
             //获取题目ID列表
             ssxxService.getQuestionIdAndRaceId(
                 refer = "https://ssxx.univs.cn/client/exam/5f71e934bcdbf3a8c3ba5061/1/1/${uidMutableLiveData.value}"
@@ -97,7 +125,7 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
     private fun getQuestionOptionsPairList(questionIdList: List<String>?) {
 
         //解析选项的中文出来
-        fun parseOptionChinese(questionAnswerModel: QuestionAnswerModel?): Single<Pair<Pair<String, String>, List<Pair<String,String>>>> {
+        fun parseOptionChinese(questionAnswerModel: QuestionAnswerModel?): Single<Pair<Pair<String, String>, List<Pair<String, String>>>> {
             val questionTitleDoc = Jsoup.parse(questionAnswerModel?.title)
             val titleText = questionTitleDoc.allElements.filterNot {
                 it.attr("style").contains("display:=\"\" none")
@@ -117,7 +145,7 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
 
             return Observable.fromIterable(questionAnswerModel?.options)
                 .flatMapSingle {
-                    Single.create<Pair<String,String>> { emitter ->
+                    Single.create<Pair<String, String>> { emitter ->
                         val doc = Jsoup.parse(it.title)
                         val optionText =
                             doc.allElements.filterNot {
@@ -131,7 +159,7 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
                             }.filterNot {
                                 it == " "
                             }.joinToString("")
-                        emitter.onSuccess(Pair(it.id?:"",optionText))
+                        emitter.onSuccess(Pair(it.id ?: "", optionText))
                     }
                 }.toList()
                 .flatMap {
@@ -155,11 +183,18 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
             }
     }
 
+    //当前在本轮的序号
     var currentCount = 0
+
+    //本轮答对题数
+    var currentCorrectCountInRace = 0
+
+    //当前轮数
     var race = 1
 
     //查询答案
     private fun getAnswer() {
+        var submitAnswerModel: SubmitAnswerRequestModel? = null
         Observable.fromIterable(questionOptionPairListMutableLiveData.value)
             .flatMap {
                 //里面的Pair ：first 是题的id  second是题的中文题目
@@ -180,30 +215,67 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
                     it.first.second == valueFromDb["题号"]
                 }
 
-                val answerListToSubmit = answerStringFromDb.split("|").map {answerInDb-> // 最多5位的答案
+                val answerListToSubmit = answerStringFromDb.split("|").map { answerInDb -> // 最多5位的答案
                     questionInList?.second?.find {//first :ID second:答案中文
                         it.second.contains(answerInDb)
-                    }?.first?:""
+                    }?.first ?: ""
                 }
                 currentCount++
-                ssxxService.submitAnswer(SubmitAnswerRequestModel(question_id = questionInList?.first?.first ?: "", answer = answerListToSubmit))
+                submitAnswerModel = SubmitAnswerRequestModel(question_id = questionInList?.first?.first ?: "", answer = answerListToSubmit)
+                ssxxService.submitAnswer(submitAnswerModel)
             }.onErrorResumeNext { error: Throwable ->
-                Observable.just(ResponseBody.create(MediaType.parse(""), ""))
+                Observable.just(SubmitAnswerResultModel())
             }
             .doOnNext {
-                if(currentCount == questionOptionPairListMutableLiveData.value?.size!!-1){
+
+                //每一题答完
+                if (it.data?.correct == true) {
+                    coinsMutableLiveData.postValue(((coinsMutableLiveData.value?.toInt() ?: 0) + 1).toString())
+                    currentCorrectCountInRace++
+                }
+
+                //每一轮答完
+                if (currentCount == questionOptionPairListMutableLiveData.value?.size!! - 1) {
                     MyApplication.showSuccess("已完成第 $race 轮答题")
                     race++
-                    compositeDisposable.clear()
+                    //compositeDisposable.clear()
+
+                    //答对题数
+                    selectBalanceAndReport(currentCorrectCountInRace)
+
                     currentCount = 0
+                    currentCorrectCountInRace = 0
+
                     getUserTokenAndQuestionAndAnswer()
                 }
             }.switchThread()
             .bindLife()
     }
 
-    fun finishAnswer(){
-        ssxxService.finishAnswer(FinishAnswerRequestModel(raceIdMutableLiveData.value?:""))
+    val balanceMutableLiveData = MutableLiveData<String>()
+
+    //查询额度
+    private fun selectBalanceAndReport(correctNumInRace: Int) {
+        aasService.selectUserBalance(
+            name = URLEncoder.encode(nameMutableLiveData.value?:"","GBK"),
+            phone = phoneMutableLiveData.value,
+            school = URLEncoder.encode(schoolMutableLiveData.value?:"","GBK")
+        ).flatMap {
+            balanceMutableLiveData.postValue(it.string().replace("<meta charset=\"utf-8\">",""))
+            aasService.uploadUserBalance(
+                name = URLEncoder.encode(nameMutableLiveData.value?:"","GBK"),
+                phone = phoneMutableLiveData.value,
+                school = URLEncoder.encode(schoolMutableLiveData.value?:"","GBK"),
+                ed = currentCorrectCountInRace
+            )
+        }.doOnApiSuccess {
+
+        }
+    }
+
+
+    fun finishAnswer() {
+        ssxxService.finishAnswer(FinishAnswerRequestModel(raceIdMutableLiveData.value ?: ""))
             .doOnApiSuccess {
 
             }

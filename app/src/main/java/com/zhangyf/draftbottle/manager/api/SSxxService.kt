@@ -40,9 +40,17 @@ interface SSxxService {
 
     //提交答案
     @POST("cgi-bin/race/answer/")
-    fun submitAnswer(@Body submitAnswerRequestModel: SubmitAnswerRequestModel): Single<ResponseBody>
+    fun submitAnswer(@Body submitAnswerRequestModel: SubmitAnswerRequestModel? = null): Single<SubmitAnswerResultModel>
+
+    //查询用户信息
+    @GET("cgi-bin/race/grade/")
+    fun getUserInfo(
+        @Query("t") time: Long? = System.currentTimeMillis(),
+        @Query("activity_id") activityId: String? = "5f71e934bcdbf3a8c3ba5061"
+    ): Single<GetUseInfoResultModel>
 
     //停止答题
+    @FormUrlEncoded
     @POST("cgi-bin/race/finish/")
     fun finishAnswer(@Body finishAnswerRequestModel: FinishAnswerRequestModel): Single<ResponseBody>
 

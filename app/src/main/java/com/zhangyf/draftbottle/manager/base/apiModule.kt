@@ -25,6 +25,10 @@ val apiModule = Kodein.Module {
 
 	bind<OauthService>() with singleton { instance<OauthClient>().createService(OauthService::class.java) }
 
+	//AAshapi
+	bind<AAsClient>() with singleton { provideAASClient() }
+
+	bind<AAsService>() with singleton { instance<AAsClient>().createService(AAsService::class.java) }
 }
 
 
@@ -48,6 +52,24 @@ fun provideSSxxClient(): SSxxClient {
 
 fun provideOauthClient(): OauthClient {
 	val client = OauthClient.Builder()
+	val logInterceptor = HttpLoggingInterceptor()
+	logInterceptor.level = HttpLoggingInterceptor.Level.BODY
+
+	client.okBuilder
+		//.addInterceptor(HeaderInterceptor())
+		.addInterceptor(NetErrorInterceptor())
+		.cookieJar(CookieJarManager())
+		.apply {
+			if (BuildConfig.DEBUG)
+				addInterceptor(logInterceptor)
+		}
+		.readTimeout(10, TimeUnit.SECONDS)
+
+	return client.build()
+}
+
+fun provideAASClient(): AAsClient {
+	val client = AAsClient.Builder()
 	val logInterceptor = HttpLoggingInterceptor()
 	logInterceptor.level = HttpLoggingInterceptor.Level.BODY
 

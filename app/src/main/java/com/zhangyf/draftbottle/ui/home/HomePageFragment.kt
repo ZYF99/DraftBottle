@@ -17,17 +17,34 @@ class HomePageFragment : BindingFragment<HomePageBinding, HomePageViewModel>(
 
     override fun initWidget() {
 
+        viewModel.nameMutableLiveData.observeNonNull {
+            binding.tvName.text = "姓名：$it"
+        }
+
+        viewModel.schoolMutableLiveData.observeNonNull {
+            binding.tvSchool.text = "学校：$it"
+        }
+
+        viewModel.phoneMutableLiveData.observeNonNull {
+            binding.tvPhone.text = "手机号：$it"
+        }
+
+        viewModel.coinsMutableLiveData.observeNonNull {
+            binding.tvCoin.text = "积分：$it"
+        }
+
         /*binding.btnFinish.setOnClickListener {
             compositeDisposable.clear()
             viewModel.finishAnswer()
         }*/
 
+
     }
 
     val client: JWebSocketClient by lazy {
         val uri = URI.create("ws://47.94.238.124:8080/socket.io/?EIO=3&transport=websocket&sid=9vopxKA8iXqTx4FDAIqT")
-        val headerMap: HashMap<String, String> = hashMapOf(Pair("Cookie","io=9vopxKA8iXqTx4FDAIqT"))
-        object : JWebSocketClient(uri,headerMap) {
+        val headerMap: HashMap<String, String> = hashMapOf(Pair("Cookie", "io=9vopxKA8iXqTx4FDAIqT"))
+        object : JWebSocketClient(uri, headerMap) {
             override fun onMessage(message: String) {
                 //message就是接收到的消息
                 Log.e("JWebSClientService", message)
@@ -36,6 +53,7 @@ class HomePageFragment : BindingFragment<HomePageBinding, HomePageViewModel>(
     }
 
     override fun initData() {
+        viewModel.getCount()
         viewModel.getLoginSessionAndQRCode()
         /*try {
             client.connectBlocking()
@@ -58,7 +76,6 @@ class HomePageFragment : BindingFragment<HomePageBinding, HomePageViewModel>(
             //client = null
         }
     }
-
 
     override fun onDestroy() {
         super.onDestroy()

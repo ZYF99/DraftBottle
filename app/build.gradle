@@ -63,6 +63,7 @@ android {
 
             buildConfigField("String", "SSXXURL", '"https://ssxx.univs.cn/"')
             buildConfigField("String", "OAUTHURL", '"https://oauth.u.hep.com.cn/oauth/wxapp/"')
+            buildConfigField("String", "AASURL", '"http://49.233.18.138/"')
             buildConfigField("String", "RONGYUN_KEY", '"pvxdm17jpesvr"')
             buildConfigField("String", "RONGYUN_SECRET", '"OZ3U7ofvXh"')
             buildConfigField "boolean", "ALLOW_ALL_CERTIFICATES", "false"
@@ -72,6 +73,7 @@ android {
         debug {
             buildConfigField("String", "SSXXURL", '"https://ssxx.univs.cn/"')
             buildConfigField("String", "OAUTHURL", '"https://oauth.u.hep.com.cn/oauth/wxapp/"')
+            buildConfigField("String", "AASURL", '"http://49.233.18.138/"')
             buildConfigField("String", "RONGYUN_KEY", '"pvxdm17jpesvr"')
             buildConfigField("String", "RONGYUN_SECRET", '"OZ3U7ofvXh"')
             buildConfigField "boolean", "ALLOW_ALL_CERTIFICATES", "true"

@@ -18,14 +18,95 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:paddingStart="8dp"
+            android:text="次数："
+            android:textSize="18dp"
+            app:layout_constraintEnd_toStartOf="@+id/tv_count"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/tv_count"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:paddingStart="8dp"
+            android:textSize="18dp"
+            tools:text="13"
+            android:text="@{vm.countMutableLiveData}"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
+
+        <TextView
+            android:id="@+id/tv_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:paddingStart="8dp"
+            android:text="姓名"
+            app:layout_constraintEnd_toStartOf="@+id/iv_qr"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/iv_qr" />
+
+        <TextView
+            android:id="@+id/tv_school"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:paddingStart="8dp"
+            android:text="学校"
+            app:layout_constraintEnd_toStartOf="@+id/iv_qr"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_name" />
+
+        <TextView
+            android:id="@+id/tv_phone"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:paddingStart="8dp"
+            android:layout_marginTop="8dp"
+            android:text="手机号"
+            app:layout_constraintEnd_toStartOf="@+id/iv_qr"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_school" />
+
+        <TextView
+            android:id="@+id/tv_coin"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:paddingStart="8dp"
+            android:layout_marginTop="8dp"
+            android:text="积分"
+            app:layout_constraintEnd_toStartOf="@+id/iv_qr"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_phone" />
+
+        <TextView
+            android:id="@+id/tv_data_num"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:paddingStart="8dp"
+            android:gravity="center"
+            tools:text="99"
+            android:text="@{vm.balanceMutableLiveData}"
+            app:layout_constraintEnd_toStartOf="@+id/iv_qr"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_coin" />
+
         <ImageView
             android:id="@+id/iv_qr"
-            android:layout_width="300dp"
-            android:layout_height="300dp"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:src="@color/color_69"
             imageUrl="@{vm.imageUrlMutableLiveData}"
+            android:layout_marginEnd="32dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
