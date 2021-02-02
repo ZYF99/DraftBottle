@@ -21,7 +21,7 @@ import kotlin.reflect.KClass
 class OauthClient private constructor(val retrofit: Retrofit, val okHttpClient: OkHttpClient) {
 	
 	fun <S> createService(serviceClass: Class<S>): S = retrofit.create(serviceClass)
-	
+
 	fun <S : Any> createService(serviceClass: KClass<S>): S = createService(serviceClass.java)
 	
 	
@@ -78,33 +78,20 @@ class OauthClient private constructor(val retrofit: Retrofit, val okHttpClient: 
 			return this
 		}
 		
-		fun build(baseUrl: String = BuildConfig.OAUTHURL): OauthClient {
-			
-			adapterBuilder
-				.baseUrl(baseUrl)
-				//.addConverterFactory(WireConverterFactory.create())
-				.addCallAdapterFactory(RxJava2CallAdapterFactory.create())
-				.addConverterFactory(LenientGsonConverterFactory.create())
-			
-			
-			val client = okBuilder.addInterceptor { chain ->
-				val origin = chain.request()
-				val request = origin
-					.newBuilder()
-					.header("Accept", "application/json;charset=UTF-8")
-					//.header("X-Token", getLocalToken())
-					.header("Content-Type", "application/x-www-form-urlencoded")
-					.method(origin.method(), origin.body())
-					.build()
-				chain.proceed(request)
-			}.build()
-			
-			if (BuildConfig.ALLOW_ALL_CERTIFICATES)
-				setAllowAllCerTificates()
-			
+		fun build(baseUrl: String = BuildConfig.OAUTHURL): OauthClient {			adapterBuilder
+			.baseUrl(baseUrl)
+			//.addConverterFactory(WireConverterFactory.create())
+			.addCallAdapterFactory(RxJava2CallAdapterFactory.create())
+			.addConverterFactory(LenientGsonConverterFactory.create())
+
+			val client = okBuilder.build()
+
+			setAllowAllCerTificates()
+
 			val retrofit = adapterBuilder.client(client).build()
 			return OauthClient(retrofit, client)
 		}
+
 	}
 	
 	companion object {

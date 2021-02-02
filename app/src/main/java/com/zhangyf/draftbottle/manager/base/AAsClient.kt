@@ -69,14 +69,7 @@ class AAsClient private constructor(val retrofit: Retrofit, val okHttpClient: Ok
 				}
 			}
 		
-		fun setAllowAllCerTificates(): Builder {
-			allowAllSSLSocketFactory?.apply {
-				okBuilder.sslSocketFactory(first, second)
-				okBuilder.hostnameVerifier(HostnameVerifier { _, _ -> true })
-			}
-			
-			return this
-		}
+
 		
 		fun build(baseUrl: String = BuildConfig.AASURL): AAsClient {
 			
@@ -85,31 +78,23 @@ class AAsClient private constructor(val retrofit: Retrofit, val okHttpClient: Ok
 				//.addConverterFactory(WireConverterFactory.create())
 				.addCallAdapterFactory(RxJava2CallAdapterFactory.create())
 				.addConverterFactory(LenientGsonConverterFactory.create())
-			
-			
-			val client = okBuilder.addInterceptor { chain ->
-				val origin = chain.request()
-				val request = origin
-					.newBuilder()
-					.header("Accept", "application/json;charset=UTF-8")
-					//.header("X-Token", getLocalToken())
-					.header("Content-Type", "application/x-www-form-urlencoded")
-					.method(origin.method(), origin.body())
-					.build()
-				chain.proceed(request)
-			}.build()
-			
-			if (BuildConfig.ALLOW_ALL_CERTIFICATES)
-				setAllowAllCerTificates()
+
+			val client = okBuilder.build()
+
+			setAllowAllCerTificates()
 			
 			val retrofit = adapterBuilder.client(client).build()
 			return AAsClient(retrofit, client)
 		}
-	}
-	
-	companion object {
-		val defaultClient: AAsClient
-			get() = Builder().build()
+
+		private fun setAllowAllCerTificates(): Builder {
+			allowAllSSLSocketFactory?.apply {
+				okBuilder.sslSocketFactory(first, second)
+				okBuilder.hostnameVerifier(HostnameVerifier { _, _ -> true })
+			}
+
+			return this
+		}
 	}
 }
 

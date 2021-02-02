@@ -5,6 +5,8 @@ import androidx.appcompat.app.AlertDialog
 import com.zhangyf.draftbottle.R
 import com.zhangyf.draftbottle.databinding.HomePageBinding
 import com.zhangyf.draftbottle.ui.base.BindingFragment
+import com.zhangyf.draftbottle.utils.switchThread
+import io.reactivex.android.schedulers.AndroidSchedulers
 import java.net.URI
 
 
@@ -30,10 +32,6 @@ class HomePageFragment : BindingFragment<HomePageBinding, HomePageViewModel>(
             binding.tvPhone.text = "手机号：$it"
         }
 
-        viewModel.coinsMutableLiveData.observeNonNull {
-            binding.tvCoin.text = "积分：$it"
-        }
-
         viewModel.versionMutableLiveData.observeNonNull {
             if (it == "2.0") {
                 viewModel.getLoginSessionAndQRCode()
@@ -46,6 +44,12 @@ class HomePageFragment : BindingFragment<HomePageBinding, HomePageViewModel>(
                         .show()
                 }
             }
+        }
+
+        viewModel.aRaceEnd.observeNonNull {
+            compositeDisposable.clear()
+            //开启下一轮答题
+            viewModel.getUserTokenAndQuestionAndAnswer().switchThread().bindLife()
         }
 
         /*binding.btnFinish.setOnClickListener {
@@ -68,6 +72,7 @@ class HomePageFragment : BindingFragment<HomePageBinding, HomePageViewModel>(
     }
 
     override fun initData() {
+        viewModel.initQ()
         viewModel.getCount()
         viewModel.getVersionAndGo()
 

@@ -13,10 +13,11 @@ import com.zhangyf.draftbottle.ui.base.BaseViewModel
 import com.zhangyf.draftbottle.utils.switchThread
 import io.reactivex.Observable
 import io.reactivex.Single
+import io.reactivex.plugins.RxJavaPlugins
+import okhttp3.ResponseBody
 import org.jsoup.Jsoup
 import org.kodein.di.generic.instance
 import java.net.URLEncoder
-import java.util.HashMap
 import java.util.concurrent.TimeUnit
 
 class HomePageViewModel(application: Application) : BaseViewModel(application) {
@@ -30,20 +31,19 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
     val photoUrlMutableLiveData = MutableLiveData<String>()
     val uidMutableLiveData = MutableLiveData<String>()
 
-
-    val raceIdMutableLiveData = MutableLiveData<String>()
+    var raceCode: String = ""
 
 
     val countMutableLiveData = MutableLiveData<String>()
     val versionMutableLiveData = MutableLiveData<String>()
 
-    fun getVersionAndGo(){
-        Single.create<String> { emitter ->
-            emitter.onSuccess(DBUtils.getVersion())
-        }.switchThread()
-            .doOnSuccess {
-                versionMutableLiveData.postValue(it)
-            }.bindLife()
+    fun initQ() {
+        RxJavaPlugins.setErrorHandler {
+            currentCount = 0
+            currentCorrectCountInRace = 0
+            //开启下一轮答题
+            getUserTokenAndQuestionAndAnswer(photoUrlMutableLiveData.value, uidMutableLiveData.value)
+        }
     }
 
     fun getCount() {
@@ -55,46 +55,69 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
             }.bindLife()
     }
 
+
+    fun getVersionAndGo() {
+        Single.create<String> { emitter ->
+            emitter.onSuccess(DBUtils.getVersion())
+        }.switchThread()
+            .doOnSuccess {
+                versionMutableLiveData.postValue(it)
+            }.bindLife()
+    }
+
+
     fun getLoginSessionAndQRCode() {
         randomStringMutableLiveData.value = getRandomString(20)
 
         ssxxService.getoginSession()
             .flatMap {
                 oAuthService.getPicturlUrl(randomStringMutableLiveData.value ?: "")
-            }.flatMapObservable {
+            }.doOnSuccess {
                 imageUrlMutableLiveData.postValue(it.data.qrcode)
+                //开启循环检测是否登录
                 checkIfLogin()
             }.switchThread()
-            .doOnNext {
-
-            }.bindLife()
+            .bindLife()
     }
 
     val nameMutableLiveData = MutableLiveData<String>()
-    val phoneMutableLiveData = MutableLiveData<String>()
     val schoolMutableLiveData = MutableLiveData<String>()
 
-    val coinsMutableLiveData = MutableLiveData<String>()
+    lateinit var name: String
+    lateinit var school: String
+
+
+    val phoneMutableLiveData = MutableLiveData<String>()
+
+
+    var coinsMutableLiveData = MutableLiveData<Int>()
 
     private fun checkIfLogin() =
         Observable.interval(1, 2, TimeUnit.SECONDS)
             .flatMapSingle {
                 oAuthService.checkIfLogin(randomStringMutableLiveData.value ?: "")
-            }.flatMap {
+            }.switchThread()
+            .doOnNext {
                 if (it.data.code != 500) {
                     photoUrlMutableLiveData.postValue(it.data.data.photo)
                     uidMutableLiveData.postValue(it.data.data._id)
                     phoneMutableLiveData.postValue(it.data.data.phone)
                     imageUrlMutableLiveData.postValue("https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fa3.att.hudong.com%2F61%2F98%2F01300000248068123885985729957.jpg&refer=http%3A%2F%2Fa3.att.hudong.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=jpeg?sec=1614782860&t=eaad93c04c6880353b9aa809cbe3ac5d")
-                    getUserTokenAndQuestionAndAnswer(it.data.data.photo, it.data.data._id)
-                } else {
-                    Observable.just(QuestionIdListResultModel())
+                    compositeDisposable.clear()
+                    getUserTokenAndQuestionAndAnswer(it.data.data.photo, it.data.data._id).switchThread().bindLife()
+                    throw LoginSuccess()
                 }
+            }.doOnError {
+                if (it is LoginSuccess) MyApplication.showSuccess("登陆成功！")
             }
+            .bindLife()
 
 
-    //获取用户token
-    private fun getUserTokenAndQuestionAndAnswer(photoUrlMutable: String?, uidMutable: String?) =
+    //获取用户token并答题
+    fun getUserTokenAndQuestionAndAnswer(
+        photoUrlMutable: String? = photoUrlMutableLiveData.value,
+        uidMutable: String? = uidMutableLiveData.value
+    ) =
         ssxxService.getUserToken(
             avatar = photoUrlMutable,
             uid = uidMutable
@@ -105,6 +128,11 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
             ssxxService.getUserInfo()
         }.flatMap {
 
+            name = it.data?.name ?: ""
+            school = it.data?.university_name ?: ""
+
+            coinsMutableLiveData.postValue(it.data?.integral ?: 0)
+
             nameMutableLiveData.postValue(it.data?.name)
             schoolMutableLiveData.postValue(it.data?.university_name)
 
@@ -112,42 +140,46 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
             ssxxService.getQuestionIdAndRaceId(
                 refer = "https://ssxx.univs.cn/client/exam/5f71e934bcdbf3a8c3ba5061/1/1/${uidMutableLiveData.value}"
             )
-        }.flatMapObservable {
+        }.flatMap {
             if (it.race_code != null) {
-                raceIdMutableLiveData.postValue(it.race_code)
+                raceCode = it.race_code
                 getQuestionOptionsPairList(it.question_ids)
             } else {
-                Observable.just(QuestionIdListResultModel())
+                Single.just(ResponseBody.create(null, ""))
             }
         }
 
 
     //获取题目选项
-    private fun getQuestionOptionsPairList(questionIdList: List<String>?): Observable<QuestionIdListResultModel>? {
+    private fun getQuestionOptionsPairList(questionIdList: List<String>?): Single<ResponseBody> {
 
         //解析选项的中文出来
         fun parseOptionChinese(questionAnswerModel: QuestionAnswerModel?): Single<Pair<Pair<String, String>, List<Pair<String, String>>>> {
-            val questionTitleDoc = Jsoup.parse(questionAnswerModel?.title)
+            val questionTitleDoc = Jsoup.parse(questionAnswerModel?.title ?: "")
             val titleText = questionTitleDoc.allElements.filterNot {
                 it.attr("style").contains("display:=\"\" none")
             }.filterNot {
                 it.attr("style").contains("display: none")
-
             }.filterNot {
                 it.attr("style").contains("display:none")
             }.mapNotNull {
                 it.ownText()
             }.filterNot {
                 it == "" && it == ""
-            }.joinToString("")
-                .replace("，", "").replace("。", "").replace("（", "")
-                .replace("）", "").replace("：", "").replace("？", "")
-                .replace("、", "").trim().substring(0, 10)
+            }
+                .joinToString("")
+                .replace("，", "").replace("。", "").replace("（", "").replace("—", "")
+                .replace("“", "").replace("”", "").replace(" ", "")
+                .replace("【", "").replace("】", "").replace("《", "").replace("》", "")
+                .replace("·", "").replace("）", "").replace("：", "")
+                .replace("？", "").replace("、", "").trim()
+            val titleResult = if (titleText.length >= 10) titleText.substring(0, 10) else titleText
 
             return Observable.fromIterable(questionAnswerModel?.options)
                 .flatMapSingle {
                     Single.create<Pair<String, String>> { emitter ->
                         val doc = Jsoup.parse(it.title)
+                        //解析题目的中文
                         val optionText =
                             doc.allElements.filterNot {
                                 it.attr("style").contains("display: none")
@@ -164,7 +196,7 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
                     }
                 }.toList()
                 .flatMap {
-                    Single.just(Pair(Pair(questionAnswerModel?.id ?: "", titleText), it))
+                    Single.just(Pair(Pair(questionAnswerModel?.id ?: "", titleResult), it))
                 }
         }
 
@@ -173,43 +205,34 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
             .flatMapSingle { questionId ->
                 ssxxService.getQuestionOptions(questionId = questionId)
             }.flatMapSingle {
-                Log.d("题：：", it.data.toString())
                 parseOptionChinese(it.data)
             }.toList()
-            .flatMapObservable {
-                Log.d("题目总数：", it.size.toString())
-                Log.d("题目-选项：", it.toString())
-                answer(it)
-            }
+            .flatMap { answer(it) }
     }
 
     //当前在本轮的序号
-    var currentCount = 0
+    private var currentCount = 0
 
     //本轮答对题数
-    var currentCorrectCountInRace = 0
+    private var currentCorrectCountInRace = 0
 
     //当前轮数
     var race = 1
 
+    //一轮是否已结束
+    val aRaceEnd = MutableLiveData<Boolean>()
+
     //查询答案并回答
-    private fun answer(questionOptionPairList: List<Pair<Pair<String, String>, List<Pair<String, String>>>>?): Observable<QuestionIdListResultModel>? {
+    private fun answer(questionOptionPairList: List<Pair<Pair<String, String>, List<Pair<String, String>>>>?): Single<ResponseBody>? {
         var submitAnswerModel: SubmitAnswerRequestModel?
         return Observable.fromIterable(questionOptionPairList)
-            .flatMap {
+            .flatMapSingle {
                 //里面的Pair ：first 是题的id  second是题的中文题目
-                //根据中文题目查数据库
-                Observable.create<HashMap<String, Any>> { emitter ->
-                    //题目前10位
-                    val titleKey =
-                        it.first.second
-                    Log.d("titleKey", titleKey)
-                    val map = DBUtils.getQuestionAnswer(titleKey)
-                    emitter.onNext(map)
-                }
-            }.flatMapSingle { valueFromDb ->
+                //题目前10位
+                val titleKey = it.first.second
+                Log.d("titleKey", titleKey)
+                val valueFromDb = DBUtils.getQuestionAnswer(titleKey)
                 val answerStringFromDb = valueFromDb["答案"].toString()
-                Log.d("查出来的答案", answerStringFromDb)
                 val questionInList = questionOptionPairList?.find {
                     //题目（数据库中的题号）
                     it.first.second == valueFromDb["题号"]
@@ -225,31 +248,44 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
                 ssxxService.submitAnswer(submitAnswerModel)
             }.onErrorResumeNext { _: Throwable ->
                 Observable.just(SubmitAnswerResultModel())
+            }.doOnEach {
+                if (it.value?.data?.correct == true) currentCorrectCountInRace++
             }
-            .flatMap {
-                if (currentCount == 19) {
-                    Log.d("一轮完成", "!!!!!!!!!")
-                    //每一轮答完
-                    MyApplication.showSuccess("已完成第 $race 轮答题")
-                    race++
-                    //compositeDisposable.clear()
+            .toList()
+            .flatMap {//每一轮答完
+                MyApplication.showSuccess("已完成第 $race 轮答题")
+                race++
 
-                    //答对题数
-                    selectBalanceAndReport(currentCorrectCountInRace)
-                        .flatMapObservable {
-                            currentCount = 0
-                            currentCorrectCountInRace = 0
-                            if ((balanceMutableLiveData.value?.trim()?.toInt() ?: 0) >= 0) {
-                                getUserTokenAndQuestionAndAnswer(photoUrlMutableLiveData.value, uidMutableLiveData.value)
-                            } else {
-                                Observable.just(QuestionIdListResultModel())
-                            }
-                        }
-                } else {
-                    coinsMutableLiveData.postValue(((coinsMutableLiveData.value?.toInt() ?: 0) + 1).toString())
-                    currentCorrectCountInRace++
-                    Observable.just(QuestionIdListResultModel())
-                }
+                /*//更新积分UI
+                coinsMutableLiveData.postValue((coinsMutableLiveData.value ?: 0) + currentCorrectCountInRace)*/
+
+                //上传正确数并查询额度
+                reportAndSelectBalance(currentCorrectCountInRace)
+            }?.flatMap {
+                val result = it.string().replace("<meta charset=\"utf-8\">", "")
+
+                //额度
+                val balance = if (result.isEmpty()) -1 else result.trim().toInt()
+
+                //额度UI更新
+                balanceMutableLiveData.postValue(balance.toString())
+
+                //判断额度
+                if (balance < 0) throw NoBalanceException()
+
+                //结束本轮答题
+                ssxxService.finishAnswer(FinishAnswerRequestModel(raceCode))
+            }?.doOnError {
+                if (it is NoBalanceException) MyApplication.showError("没有可用额度了,无法继续")
+            }?.doOnSuccess {
+
+                //重置本轮计数
+                currentCount = 0
+                currentCorrectCountInRace = 0
+
+                //结束标志位
+                aRaceEnd.postValue(true)
+
             }
 
     }
@@ -257,30 +293,24 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
     val balanceMutableLiveData = MutableLiveData<String>()
 
     //查询额度
-    private fun selectBalanceAndReport(correctNumInRace: Int) =
-        aasService.selectUserBalance(
-            name = URLEncoder.encode(nameMutableLiveData.value ?: "", "GBK"),
+    private fun reportAndSelectBalance(correctNumInRace: Int): Single<ResponseBody>? {
+
+        val a1 = URLEncoder.encode(name, "GBK").trim()
+        val a2 = URLEncoder.encode(school, "GBK").trim()
+
+        return aasService.prepareBalance(
+            name = a1,
             phone = phoneMutableLiveData.value,
-            school = URLEncoder.encode(schoolMutableLiveData.value ?: "", "GBK")
+            school = a2
         ).flatMap {
-            val balance = it.string().replace("<meta charset=\"utf-8\">", "")
-            Log.d("!!!!", balance)
-            balanceMutableLiveData.postValue(balance)
-            aasService.uploadUserBalance(
-                name = URLEncoder.encode(nameMutableLiveData.value ?: "", "GBK"),
-                phone = phoneMutableLiveData.value,
-                school = URLEncoder.encode(schoolMutableLiveData.value ?: "", "GBK"),
-                ed = currentCorrectCountInRace
-            )
+            aasService.uploadUserBalance(name = a1, phone = phoneMutableLiveData.value, school = a2, ed = correctNumInRace)
+        }.flatMap {
+            aasService.selectUserBalance(name = a1, phone = phoneMutableLiveData.value, school = a2)
         }
-
-
-    fun finishAnswer() {
-        ssxxService.finishAnswer(FinishAnswerRequestModel(raceIdMutableLiveData.value ?: ""))
-            .doOnApiSuccess {
-
-            }
     }
 
 }
+
+class LoginSuccess : Throwable()
+class NoBalanceException : Throwable()
 

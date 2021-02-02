@@ -20,27 +20,34 @@
 
 
         <TextView
+            android:id="@+id/textView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
             android:paddingStart="8dp"
             android:text="次数："
             android:textSize="18dp"
-            app:layout_constraintEnd_toStartOf="@+id/tv_count"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
             android:id="@+id/tv_count"
-            android:layout_width="100dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:paddingStart="8dp"
-            android:textSize="18dp"
-            tools:text="13"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginRight="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="@color/bg_inputLin_correct"
+            android:backgroundTint="@color/blue"
+            android:padding="8dp"
             android:text="@{vm.countMutableLiveData}"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            android:textColor="@color/white"
+            android:textSize="18dp"
+            app:layout_constraintBottom_toTopOf="@+id/iv_qr"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/textView"
+            app:layout_constraintTop_toTopOf="@+id/textView"
+            tools:text="13" />
 
         <TextView
             android:id="@+id/tv_name"
@@ -67,22 +74,32 @@
             android:id="@+id/tv_phone"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:paddingStart="8dp"
             android:layout_marginTop="8dp"
+            android:paddingStart="8dp"
             android:text="手机号"
             app:layout_constraintEnd_toStartOf="@+id/iv_qr"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/tv_school" />
 
         <TextView
+            android:id="@+id/tv_tip_coin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:paddingStart="8dp"
+            android:text="积分："
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_phone" />
+
+        <TextView
             android:id="@+id/tv_coin"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:paddingStart="8dp"
             android:layout_marginTop="8dp"
-            android:text="积分"
+            android:paddingStart="8dp"
+            android:text="@{vm.coinsMutableLiveData.toString()}"
             app:layout_constraintEnd_toStartOf="@+id/iv_qr"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintStart_toEndOf="@id/tv_tip_coin"
             app:layout_constraintTop_toBottomOf="@+id/tv_phone" />
 
         <TextView
@@ -90,21 +107,21 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:paddingStart="8dp"
             android:gravity="center"
-            tools:text="99"
+            android:paddingStart="8dp"
             android:text="@{vm.balanceMutableLiveData}"
             app:layout_constraintEnd_toStartOf="@+id/iv_qr"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/tv_coin" />
+            app:layout_constraintTop_toBottomOf="@+id/tv_coin"
+            tools:text="99" />
 
         <ImageView
             android:id="@+id/iv_qr"
+            imageUrl="@{vm.imageUrlMutableLiveData}"
             android:layout_width="200dp"
             android:layout_height="200dp"
-            android:src="@color/color_69"
-            imageUrl="@{vm.imageUrlMutableLiveData}"
             android:layout_marginEnd="32dp"
+            android:src="@color/color_69"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />

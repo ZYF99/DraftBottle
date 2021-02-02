@@ -7,5 +7,6 @@ data class GetUseInfoResultModel(
 
 data class UserInfo(
 val name:String?=null,
-val university_name:String?=null
+val university_name:String?=null,
+val integral:Int? = null
 )

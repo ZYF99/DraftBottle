@@ -1,11 +1,13 @@
 package com.zhangyf.draftbottle
 
 import android.app.Application
+import android.util.Log
 import android.widget.Toast
 import com.chibatching.kotpref.Kotpref
 import com.zhangyf.draftbottle.manager.base.apiModule
 import es.dmoral.toasty.Toasty
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.plugins.RxJavaPlugins
 import org.kodein.di.Kodein
 import org.kodein.di.KodeinAware
 import rx_activity_result2.RxActivityResult
@@ -32,7 +34,9 @@ class MyApplication : Application(), KodeinAware {
 		}
 		
 		fun showError(str: String) {
-			Toasty.error(instance, str, Toast.LENGTH_SHORT, true).show()
+			AndroidSchedulers.mainThread().scheduleDirect {
+				Toasty.error(instance, str, Toast.LENGTH_SHORT, true).show()
+			}
 		}
 		
 		fun showSuccess(str: String) {
@@ -48,7 +52,6 @@ class MyApplication : Application(), KodeinAware {
 			Timber.plant(Timber.DebugTree())
 		}
 		Kotpref.init(this)
-
 		RxActivityResult.register(this)
 		instance = this
 

@@ -1,15 +1,11 @@
 package com.zhangyf.draftbottle.ui.home;
 
-import android.content.Context;
-import android.util.Log;
-import android.widget.Toast;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.HashMap;
-import java.util.Objects;
+
 
 /**
  * 数据库工具类：连接数据库用、获取数据库数据用
@@ -70,9 +66,7 @@ public class DBUtils {
                         }
                         //connection.close();
                         ps.close();
-                        String versionTmp = map.get("次数").toString();
-                        Log.e("DBUtils", "查询版本：" + versionTmp);
-                        return versionTmp;
+                        return map.get("次数").toString();
                     } else {
                         return null;
                     }
@@ -84,7 +78,6 @@ public class DBUtils {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            Log.e("DBUtils", "异常：" + e.getMessage());
             return null;
         }
 
@@ -109,7 +102,6 @@ public class DBUtils {
                     ResultSet rs = ps.executeQuery();
                     if (rs != null) {
                         int count = rs.getMetaData().getColumnCount();
-                        Log.e("DBUtils", "列总数：" + count);
                         while (rs.next()) {
                             // 注意：下标是从1开始的
                             for (int i = 1; i <= count; i++) {
@@ -131,7 +123,6 @@ public class DBUtils {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            Log.e("DBUtils", "异常：" + e.getMessage());
             return null;
         }
 
@@ -168,7 +159,6 @@ public class DBUtils {
                         //connection.close();
                         ps.close();
                         String countTmp = map.get("次数").toString();
-                        Log.e("DBUtils", "查询次数：" + countTmp);
                         return countTmp;
                     } else {
                         return null;
@@ -181,7 +171,6 @@ public class DBUtils {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            Log.e("DBUtils", "异常：" + e.getMessage());
             return null;
         }
 

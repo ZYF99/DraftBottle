@@ -50,7 +50,6 @@ interface SSxxService {
     ): Single<GetUseInfoResultModel>
 
     //停止答题
-    @FormUrlEncoded
     @POST("cgi-bin/race/finish/")
     fun finishAnswer(@Body finishAnswerRequestModel: FinishAnswerRequestModel): Single<ResponseBody>
 
