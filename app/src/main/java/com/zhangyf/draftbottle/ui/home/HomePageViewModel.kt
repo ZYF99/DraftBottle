@@ -237,7 +237,6 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
                     //题目（数据库中的题号）
                     it.first.second == valueFromDb["题号"]
                 }
-
                 val answerListToSubmit = answerStringFromDb.split("|").map { answerInDb -> // 最多5位的答案
                     questionInList?.second?.find {//first :ID second:答案中文
                         it.second.contains(answerInDb)
@@ -245,10 +244,13 @@ class HomePageViewModel(application: Application) : BaseViewModel(application) {
                 }
                 currentCount++
                 submitAnswerModel = SubmitAnswerRequestModel(question_id = questionInList?.first?.first ?: "", answer = answerListToSubmit)
+                Thread.sleep(1000)
                 ssxxService.submitAnswer(submitAnswerModel)
             }.onErrorResumeNext { _: Throwable ->
                 Observable.just(SubmitAnswerResultModel())
-            }.doOnEach {
+            }
+            .doOnEach {
+                MyApplication.showSuccess("第$currentCount 题结束")
                 if (it.value?.data?.correct == true) currentCorrectCountInRace++
             }
             .toList()
